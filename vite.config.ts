@@ -17,14 +17,13 @@ export default defineConfig({
         id: ".",
         name: "Ритм — трекер привычек",
         short_name: "Ритм",
-        description:
-          "Маленькие шаги, большие перемены. Привычки, календарь и ваш прогресс.",
+        description: "Привычки, календарь выполнений и статистика.",
         lang: "ru",
         start_url: ".",
         scope: ".",
         display: "standalone",
-        background_color: "#f7f8f4",
-        theme_color: "#f7f8f4",
+        background_color: "#f5f6f8",
+        theme_color: "#f5f6f8",
         icons: [
           {
             src: "icons/icon-192.png",

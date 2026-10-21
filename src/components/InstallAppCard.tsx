@@ -54,9 +54,7 @@ export default function InstallAppCard() {
         <div className="setting-row">
           <div>
             <h3>
-              {installed
-                ? "Приложение установлено"
-                : "Ваш ритм — всегда под рукой"}
+              {installed ? "Приложение установлено" : "Установка на iPhone"}
             </h3>
             <p>
               {installed

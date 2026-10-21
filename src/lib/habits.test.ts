@@ -11,6 +11,7 @@ import {
   monthDates,
   monthlyStats,
   parseDate,
+  setCompletion,
   toggleCompletion,
   validateAppData,
   weekDates,
@@ -91,6 +92,54 @@ test("historical toggles extend tracking start and remain immutable", () => {
   const unchecked = toggleCompletion(checked, "2026-10-19");
   assert.deepEqual(unchecked.completions, []);
   assert.equal(unchecked.createdAt, "2026-10-19");
+});
+
+test("repeated completion events keep the target checked and preserve neighboring dates", () => {
+  const original = habit({ completions: ["2026-10-20", "2026-10-22"] });
+  const originalSnapshot = structuredClone(original);
+  const checked = setCompletion(original, "2026-10-21", true);
+  const checkedAgain = setCompletion(checked, "2026-10-21", true);
+
+  assert.deepEqual(checkedAgain.completions, [
+    "2026-10-20",
+    "2026-10-21",
+    "2026-10-22",
+  ]);
+  assert.equal(checkedAgain, checked);
+  assert.notEqual(checked.completions, original.completions);
+  assert.deepEqual(original, originalSnapshot);
+});
+
+test("repeated removal events keep the target unchecked without affecting neighbors or tracking start", () => {
+  const original = habit({
+    createdAt: "2026-10-19",
+    completions: ["2026-10-19", "2026-10-20", "2026-10-21"],
+  });
+  const originalSnapshot = structuredClone(original);
+  const unchecked = setCompletion(original, "2026-10-19", false);
+  const uncheckedAgain = setCompletion(unchecked, "2026-10-19", false);
+
+  assert.deepEqual(uncheckedAgain.completions, ["2026-10-20", "2026-10-21"]);
+  assert.equal(uncheckedAgain.createdAt, "2026-10-19");
+  assert.equal(uncheckedAgain, unchecked);
+  assert.notEqual(unchecked.completions, original.completions);
+  assert.deepEqual(original, originalSnapshot);
+});
+
+test("explicit backfill extends tracking start and removing it keeps that start", () => {
+  const original = habit({
+    createdAt: "2026-10-21",
+    completions: ["2026-10-21"],
+  });
+  const checked = setCompletion(original, "2026-10-19", true);
+  const unchecked = setCompletion(checked, "2026-10-19", false);
+
+  assert.equal(checked.createdAt, "2026-10-19");
+  assert.equal(unchecked.createdAt, "2026-10-19");
+  assert.deepEqual(unchecked.completions, ["2026-10-21"]);
+  assert.deepEqual(checked.completions, ["2026-10-19", "2026-10-21"]);
+  assert.equal(original.createdAt, "2026-10-21");
+  assert.deepEqual(original.completions, ["2026-10-21"]);
 });
 
 test("future checks do not contribute early; off-schedule checks only count in totals", () => {

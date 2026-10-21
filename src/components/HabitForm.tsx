@@ -13,12 +13,12 @@ type HabitFormProps = {
 
 const emojis = ["🌿", "📖", "💧", "🧘", "🏃", "☀️", "🎨", "💪", "🌙", "🚶"];
 const colors = [
-  "#719b82",
-  "#89a1c4",
-  "#c6a66e",
-  "#ad8fba",
-  "#ce8d78",
-  "#8197a1",
+  "#4876e8",
+  "#338d82",
+  "#b98332",
+  "#9a6cdb",
+  "#d16b62",
+  "#73849a",
 ];
 const categories = [
   "Здоровье",
@@ -83,9 +83,7 @@ export default function HabitForm({ habit, onSave, onClose }: HabitFormProps) {
       title={habit ? "Редактировать привычку" : "Новая привычка"}
       onClose={onClose}
     >
-      <p className="muted">
-        Маленькое действие, которое станет частью вашего дня.
-      </p>
+      <p className="muted">Название, оформление и расписание.</p>
       <form onSubmit={submit}>
         <div className="form-field">
           <label className="form-label" htmlFor={`${id}-name`}>
@@ -170,10 +168,10 @@ export default function HabitForm({ habit, onSave, onClose }: HabitFormProps) {
                 style={{ backgroundColor: value }}
                 aria-label={
                   [
-                    "Зелёный",
-                    "Голубой",
-                    "Песочный",
-                    "Сиреневый",
+                    "Синий",
+                    "Бирюзовый",
+                    "Янтарный",
+                    "Фиолетовый",
                     "Коралловый",
                     "Серо-голубой",
                   ][index]
@@ -195,7 +193,7 @@ export default function HabitForm({ habit, onSave, onClose }: HabitFormProps) {
           <span className="form-label" id={`${id}-days-label`}>
             Повторять
           </span>
-          <div className="choice-row">
+          <div className="choice-row weekday-choices">
             {weekdays.map((day) => (
               <button
                 type="button"
@@ -211,7 +209,7 @@ export default function HabitForm({ habit, onSave, onClose }: HabitFormProps) {
           </div>
           <small className="muted">
             {days.length === 7
-              ? "Каждый день — в своём ритме"
+              ? "Каждый день"
               : "Отмечайте выполнение в выбранные дни"}
           </small>
         </div>

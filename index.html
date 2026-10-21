@@ -16,10 +16,27 @@
     <meta name="apple-mobile-web-app-title" content="Ритм" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="theme-color" content="#f7f8f4" />
+    <meta name="theme-color" content="#f5f6f8" />
+    <script>
+      // Apply the saved theme before styles paint, including standalone launch.
+      try {
+        const theme = JSON.parse(localStorage.getItem("ritm.habits.v1"))
+          ?.settings?.theme;
+        const dark =
+          theme === "dark" ||
+          (theme === "system" &&
+            matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+        document.querySelector('meta[name="theme-color"]').content = dark
+          ? "#111214"
+          : "#f5f6f8";
+      } catch {
+        // The app reports unavailable or invalid storage after loading.
+      }
+    </script>
     <meta
       name="description"
-      content="Ритм — пространство для полезных привычек. Отмечайте маленькие шаги и наблюдайте за своим прогрессом."
+      content="Ритм — трекер привычек с календарём выполнений и статистикой."
     />
     <title>Ритм — трекер привычек</title>
   </head>

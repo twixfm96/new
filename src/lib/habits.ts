@@ -215,18 +215,27 @@ export function monthlyStats(
   return { completed, scheduled, rate: percentage(completed, scheduled) };
 }
 
-/** Backfilling a date extends tracking history. Removing it does not discard that history. */
-export function toggleCompletion(habit: Habit, key: string): Habit {
+/** Set one date explicitly so repeated completion events cannot undo a check. */
+export function setCompletion(
+  habit: Habit,
+  key: string,
+  completed: boolean,
+): Habit {
   parseDate(key);
+  if (habit.completions.includes(key) === completed) return habit;
   const checks = new Set(habit.completions);
-  const removing = checks.has(key);
-  if (removing) checks.delete(key);
-  else checks.add(key);
+  if (completed) checks.add(key);
+  else checks.delete(key);
   return {
     ...habit,
-    createdAt: !removing && key < habit.createdAt ? key : habit.createdAt,
+    createdAt: completed && key < habit.createdAt ? key : habit.createdAt,
     completions: [...checks].sort(),
   };
+}
+
+/** Backfilling extends tracking history; removing a check preserves its start. */
+export function toggleCompletion(habit: Habit, key: string): Habit {
+  return setCompletion(habit, key, !habit.completions.includes(key));
 }
 
 export function createEmptyData(): AppData {

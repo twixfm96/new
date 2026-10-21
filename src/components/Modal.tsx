@@ -13,6 +13,16 @@ type ModalProps = {
 const modalStack: HTMLElement[] = [];
 let originalBodyOverflow = "";
 
+function syncModalStack() {
+  modalStack.forEach((dialog, index) => {
+    const isTop = index === modalStack.length - 1;
+    dialog.inert = !isTop;
+    dialog.setAttribute("aria-modal", String(isTop));
+    if (isTop) dialog.removeAttribute("aria-hidden");
+    else dialog.setAttribute("aria-hidden", "true");
+  });
+}
+
 const focusableSelector = [
   "a[href]",
   "button:not([disabled])",
@@ -46,13 +56,16 @@ export default function Modal({
       document.body.style.overflow = "hidden";
     }
     modalStack.push(dialog);
+    dialog.focus({ preventScroll: true });
+    syncModalStack();
 
     const frame = requestAnimationFrame(() => {
+      if (modalStack.at(-1) !== dialog) return;
       const initialTarget =
         dialog.querySelector<HTMLElement>("[data-modal-autofocus]") ??
         dialog.querySelector<HTMLElement>(focusableSelector) ??
         dialog;
-      initialTarget.focus();
+      initialTarget.focus({ preventScroll: true });
     });
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -98,9 +111,11 @@ export default function Modal({
       document.removeEventListener("keydown", handleKeyDown);
       const index = modalStack.indexOf(dialog);
       if (index !== -1) modalStack.splice(index, 1);
+      syncModalStack();
       if (modalStack.length === 0)
         document.body.style.overflow = originalBodyOverflow;
-      if (previouslyFocused?.isConnected) previouslyFocused.focus();
+      if (previouslyFocused?.isConnected)
+        previouslyFocused.focus({ preventScroll: true });
     };
   }, []);
 

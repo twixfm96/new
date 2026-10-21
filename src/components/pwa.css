@@ -2,11 +2,32 @@
   grid-column: 1 / -1;
 }
 
+.install-app-panel h2 {
+  font-size: 17px;
+}
+
+.install-app-panel .settings-description,
+.install-app-panel .setting-row p {
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.install-app-panel .setting-row h3 {
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+.install-app-panel .setting-row .button {
+  min-height: 48px;
+  padding: 12px 17px;
+  font-size: 16px;
+}
+
 .install-state {
   display: inline-grid;
   place-items: center;
-  width: 35px;
-  height: 35px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: var(--sage);
   color: var(--green);
@@ -19,8 +40,8 @@
   align-items: flex-start;
   gap: 9px;
   color: var(--secondary);
-  font-size: 10px;
-  line-height: 1.8;
+  font-size: 15px;
+  line-height: 1.65;
 }
 
 .install-offline-note {
@@ -55,8 +76,8 @@
 }
 
 .install-guide-intro p {
-  font-size: 12px;
-  line-height: 1.8;
+  font-size: 15px;
+  line-height: 1.65;
   color: var(--secondary);
 }
 
@@ -69,7 +90,7 @@
 
 .install-steps li {
   position: relative;
-  padding: 0 0 23px 39px;
+  padding: 0 0 26px 43px;
   counter-increment: install-step;
 }
 
@@ -80,12 +101,12 @@
   left: 0;
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: var(--sage);
   color: var(--green);
-  font-size: 11px;
+  font-size: 15px;
   font-weight: 700;
 }
 
@@ -93,7 +114,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 17px;
   font-weight: 600;
   line-height: 1.7;
 }
@@ -104,8 +125,8 @@
 }
 
 .install-steps p {
-  font-size: 11px;
-  line-height: 1.8;
+  font-size: 15px;
+  line-height: 1.65;
   color: var(--secondary);
   margin-top: 6px;
 }
@@ -114,29 +135,39 @@
   padding: 14px;
   border-radius: 9px;
   background: var(--sage);
-  color: var(--green);
+  color: var(--text);
 }
 
 .install-data-note {
   margin-top: 16px;
-  font-size: 10px;
-  line-height: 1.85;
+  font-size: 14px;
+  line-height: 1.65;
   color: var(--secondary);
+}
+
+.modal-dialog:has(.install-guide-intro) .modal-header h2 {
+  font-size: 17px;
+}
+
+.modal-dialog:has(.install-guide-intro) .modal-actions .button {
+  min-height: 48px;
+  font-size: 16px;
+  padding: 12px 17px;
 }
 
 .pwa-status {
   position: fixed;
   z-index: 230;
-  bottom: calc(77px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
   right: max(24px, env(safe-area-inset-right, 0px));
-  width: 550px;
+  width: 620px;
   max-width: calc(100vw - 36px);
   padding: 17px;
   border-radius: 12px;
-  border: 1px solid var(--sage-deep);
+  border: 1px solid var(--line);
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 7px 35px #17311c24;
+  box-shadow: var(--shadow);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -154,15 +185,15 @@
 
 .pwa-status-copy strong {
   display: block;
-  font-size: 11px;
+  font-size: 17px;
   font-weight: 600;
   line-height: 1.7;
 }
 
 .pwa-status-copy p {
   color: var(--secondary);
-  font-size: 10px;
-  line-height: 1.7;
+  font-size: 15px;
+  line-height: 1.65;
   margin-top: 5px;
 }
 
@@ -173,9 +204,14 @@
 }
 
 .pwa-status-actions .button {
-  padding: 9px 11px;
-  min-height: 35px;
-  font-size: 10px;
+  padding: 12px 15px;
+  min-height: 48px;
+  font-size: 16px;
+}
+
+.pwa-status > .icon-button {
+  min-width: 48px;
+  min-height: 48px;
 }
 
 @media (max-width: 590px) {
@@ -187,22 +223,15 @@
     gap: 12px;
   }
 
-  .install-guide-intro p {
-    font-size: 11px;
-  }
-
   .install-guide-icon {
     width: 45px;
     height: 45px;
     border-radius: 13px;
   }
 
-  .install-steps strong {
-    font-size: 11px;
-  }
-
   .pwa-status {
     right: 18px;
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
     flex-wrap: wrap;
     align-items: flex-start;
     padding: 15px;

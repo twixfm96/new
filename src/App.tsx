@@ -3,7 +3,6 @@ import type { CSSProperties, ChangeEvent } from "react";
 import {
   ArrowDownToLine,
   ArrowRight,
-  ArrowUpRight,
   BarChart3,
   CalendarDays,
   Check,
@@ -12,17 +11,14 @@ import {
   ChevronRight,
   CircleHelp,
   Flame,
-  Flower2,
   LayoutGrid,
   Leaf,
-  Menu,
   Moon,
   MoreHorizontal,
   Plus,
   Search,
   Settings2,
   ShieldCheck,
-  Sparkles,
   Sun,
   Target,
   Trash2,
@@ -41,9 +37,8 @@ import {
   monthDates,
   monthlyStats,
   parseDate,
-  toggleCompletion,
+  setCompletion,
   validateAppData,
-  weekDates,
 } from "./lib/habits";
 import type { AppData, Habit } from "./lib/habits";
 import Modal from "./components/Modal";
@@ -59,10 +54,6 @@ const fullDate = (key: string) =>
     month: "long",
     year: "numeric",
   });
-const shortDate = (key: string) =>
-  parseDate(key)
-    .toLocaleDateString("ru-RU", { day: "numeric", month: "short" })
-    .replace(".", "");
 function shiftMonth(date: Date, offset: number): Date {
   const next = new Date(date);
   next.setDate(1);
@@ -130,48 +121,6 @@ function useToday() {
   return today;
 }
 
-function SproutArt() {
-  return (
-    <svg
-      className="sprout-art"
-      width="170"
-      height="150"
-      viewBox="0 0 170 150"
-      fill="none"
-      aria-hidden="true"
-    >
-      <ellipse cx="85" cy="136" rx="51" ry="7" fill="#d9dfcd" />
-      <path
-        d="M86 129C85 96 82 62 98 25"
-        stroke="#496848"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-      <path d="M86 103C53 104 35 84 38 65C64 62 84 77 86 103Z" fill="#91ab78" />
-      <path
-        d="M87 78C112 77 135 54 128 36C103 36 88 52 87 78Z"
-        fill="#5c8058"
-      />
-      <path d="M91 53C72 49 61 33 65 19C84 21 95 34 91 53Z" fill="#b3c593" />
-      <path
-        d="M45 72L85 103M121 43L87 78M70 26L91 53"
-        stroke="#f3f5e7"
-        strokeWidth="1"
-        opacity=".65"
-      />
-      <path d="M65 117H106L101 139H70L65 117Z" fill="#e6d9bd" />
-      <path d="M62 116H109V122H62V116Z" fill="#d5c4a2" />
-      <circle cx="135" cy="91" r="2.5" fill="#9ba97c" />
-      <path
-        d="M37 33V41M33 37H41M131 13V21M127 17H135"
-        stroke="#a2af8e"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 function App() {
   const [initial] = useState(readInitial);
   const [data, setData] = useState(initial.data);
@@ -184,7 +133,6 @@ function App() {
         ? "settings"
         : "habits",
   );
-  const [mobileNav, setMobileNav] = useState(false);
   const [form, setForm] = useState<Habit | "new" | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{
@@ -221,6 +169,14 @@ function App() {
             ? "dark"
             : "light"
           : data.settings.theme;
+      document
+        .querySelector('meta[name="theme-color"]')
+        ?.setAttribute(
+          "content",
+          document.documentElement.dataset.theme === "dark"
+            ? "#111214"
+            : "#f5f6f8",
+        );
     };
     apply();
     media.addEventListener("change", apply);
@@ -235,11 +191,13 @@ function App() {
             ? "settings"
             : "habits",
       );
-      setMobileNav(false);
     };
     window.addEventListener("hashchange", update);
     return () => window.removeEventListener("hashchange", update);
   }, []);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [page]);
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(""), 3500);
@@ -249,15 +207,14 @@ function App() {
   function navigate(next: Page) {
     setPage(next);
     location.hash = next;
-    setMobileNav(false);
     setSearch("");
     setSearchOpen(false);
   }
-  function toggle(id: string, key: string) {
+  function updateCompletion(id: string, key: string, completed: boolean) {
     setData((old) => ({
       ...old,
       habits: old.habits.map((h) =>
-        h.id === id ? toggleCompletion(h, key) : h,
+        h.id === id ? setCompletion(h, key, completed) : h,
       ),
     }));
   }
@@ -270,24 +227,22 @@ function App() {
         : [...old.habits, habit],
     }));
     setForm(null);
-    setToast(
-      exists ? "Изменения сохранены" : "Новая привычка — новый маленький шаг",
-    );
+    setToast(exists ? "Изменения сохранены" : "Привычка добавлена");
   }
   function clearAll() {
     setConfirm({
-      title: data.demo ? "Начнём вашу историю?" : "Удалить все данные?",
+      title: data.demo ? "Очистить пример?" : "Удалить все данные?",
       text: data.demo
         ? "Все привычки и отметки, включая пример и внесённые вами изменения, будут удалены. После этого можно добавить свои привычки."
         : "Все привычки и отметки будут удалены с этого устройства. Перед удалением можно сохранить экспорт в настройках.",
-      label: data.demo ? "Начать с чистого листа" : "Удалить данные",
+      label: data.demo ? "Очистить пример" : "Удалить данные",
       action: () => {
         setData((old) => ({ ...createEmptyData(), settings: old.settings }));
         setStorageBlocked(false);
         setStorageError("");
         setDetailId(null);
         setConfirm(null);
-        setToast("Готово. Впереди ваша новая история");
+        setToast("Данные удалены");
       },
     });
   }
@@ -337,14 +292,7 @@ function App() {
 
   return (
     <div className="app-shell">
-      {mobileNav && (
-        <button
-          className="nav-backdrop"
-          aria-label="Закрыть меню"
-          onClick={() => setMobileNav(false)}
-        />
-      )}
-      <aside className={`sidebar ${mobileNav ? "is-open" : ""}`}>
+      <aside className="sidebar">
         <a
           className="brand"
           href="#habits"
@@ -361,18 +309,20 @@ function App() {
             ритм<span className="brand-dot">.</span>
           </span>
         </a>
-        <div className="sidebar-caption">ПРОСТРАНСТВО ДЛЯ РОСТА</div>
+        <div className="sidebar-caption">ТРЕКЕР ПРИВЫЧЕК</div>
         <nav className="main-nav" aria-label="Основная навигация">
           <button
             className={page === "habits" ? "active" : ""}
+            aria-current={page === "habits" ? "page" : undefined}
             onClick={() => navigate("habits")}
           >
             <LayoutGrid size={19} />
-            <span>Мои привычки</span>
+            <span>Привычки</span>
             <span className="nav-count">{data.habits.length}</span>
           </button>
           <button
             className={page === "stats" ? "active" : ""}
+            aria-current={page === "stats" ? "page" : undefined}
             onClick={() => navigate("stats")}
           >
             <BarChart3 size={19} />
@@ -380,27 +330,19 @@ function App() {
           </button>
           <button
             className={page === "settings" ? "active" : ""}
+            aria-current={page === "settings" ? "page" : undefined}
             onClick={() => navigate("settings")}
           >
             <Settings2 size={19} />
             <span>Настройки</span>
           </button>
         </nav>
-        <div className="sidebar-growth">
-          <SproutArt />
-          <h3>Растите в своём ритме</h3>
-          <p>
-            Даже маленький шаг —<br />
-            это движение вперёд.
-          </p>
-          <span className="growth-line" />
-        </div>
         <div className="sidebar-bottom">
           <span className="local-avatar">
             <Leaf size={18} />
           </span>
           <div>
-            <strong>Моё пространство</strong>
+            <strong>Локальное хранение</strong>
             <span>
               <span className={`status-dot ${storageError ? "error" : ""}`} />
               {storageError
@@ -420,14 +362,7 @@ function App() {
       <div className="main-shell">
         <header className="topbar">
           <div className="topbar-date">
-            <button
-              className="icon-button mobile-menu"
-              onClick={() => setMobileNav(true)}
-              aria-label="Открыть меню"
-            >
-              <Menu size={21} />
-            </button>
-            <Sun size={18} />
+            <CalendarDays size={21} />
             <span>
               {parseDate(today).toLocaleDateString("ru-RU", {
                 weekday: "long",
@@ -463,16 +398,12 @@ function App() {
                 <span className="topbar-separator" />
               </>
             )}
-            <span className="today-pill">
-              <span />
-              Сегодня — хороший день
-            </span>
             <button
               className="profile-button"
               aria-label="Настройки приложения"
               onClick={() => navigate("settings")}
             >
-              Я
+              <Settings2 size={22} />
             </button>
           </div>
         </header>
@@ -490,111 +421,56 @@ function App() {
             <>
               <section className="page-heading">
                 <div>
-                  <div className="eyebrow">
-                    <span />
-                    КАЖДЫЙ ДЕНЬ ИМЕЕТ ЗНАЧЕНИЕ
-                  </div>
-                  <h1>
-                    Маленькие шаги,
-                    <br className="mobile-break" /> большие перемены
-                    <span>.</span>
-                  </h1>
-                  <p>Место, где хорошие намерения становятся привычками.</p>
+                  <h1>Привычки</h1>
                 </div>
                 <button
                   className="button button-primary new-habit-button"
                   onClick={() => setForm("new")}
                 >
                   <Plus size={18} />
-                  Новая привычка
+                  <span className="new-habit-label">Новая привычка</span>
                 </button>
               </section>
               {data.demo && (
                 <div className="demo-banner">
                   <span>
-                    <Sparkles size={16} />
-                    <strong>Немного вдохновения</strong>
-                    <span>Это пример вашего будущего прогресса.</span>
+                    <CircleHelp size={20} />
+                    <strong>Пример данных</strong>
+                    <span>Показаны демонстрационные привычки.</span>
                   </span>
                   <button onClick={clearAll}>
-                    Начать с чистого листа <ArrowRight size={15} />
+                    Очистить пример <ArrowRight size={15} />
                   </button>
                 </div>
               )}
-              <section className="summary-grid" aria-label="Краткая статистика">
-                <div className="summary-card today-card">
-                  <div>
-                    <span className="summary-label">
-                      Сегодня выполнено <CheckCheck size={16} />
-                    </span>
-                    <div className="summary-value">
-                      {stats.todayDone}
-                      <span> / {stats.todayTotal}</span>
-                    </div>
-                    <p>
-                      {stats.todayTotal > 0 &&
-                      stats.todayDone === stats.todayTotal
-                        ? "Всё получилось. Вы молодец!"
-                        : stats.todayDone > 0
-                          ? "Отличное начало. Продолжайте!"
-                          : "Ваш следующий шаг — прямо здесь"}
-                    </p>
-                  </div>
-                  <div
-                    className="donut"
-                    style={
-                      {
-                        "--progress": `${stats.todayTotal ? (stats.todayDone / stats.todayTotal) * 100 : 0}%`,
-                      } as CSSProperties
-                    }
-                  >
-                    <span>
-                      {stats.todayTotal
-                        ? Math.round((stats.todayDone / stats.todayTotal) * 100)
-                        : 0}
-                      <small>%</small>
-                    </span>
-                  </div>
+              <section
+                className="today-summary"
+                aria-label="Краткая статистика"
+              >
+                <div className="today-summary-copy">
+                  <span>Сегодня</span>
+                  <strong>
+                    {stats.todayDone} <span>из {stats.todayTotal}</span>
+                  </strong>
+                  <span>выполнено</span>
                 </div>
-                <div className="summary-card">
-                  <div>
-                    <span className="summary-label">
-                      Лучшая серия <Flame size={16} />
-                    </span>
-                    <div className="summary-value">
-                      {stats.bestStreak}
-                      <span>
-                        {" "}
-                        {plural(stats.bestStreak, ["день", "дня", "дней"])}
-                      </span>
-                    </div>
-                    <p>Ваша последовательность вдохновляет</p>
-                  </div>
-                  <div className="stat-art streak-art">
-                    <Flame size={36} strokeWidth={1.4} />
-                    <span className="spark spark-one">✦</span>
-                    <span className="spark spark-two">✦</span>
-                  </div>
-                </div>
-                <div className="summary-card">
-                  <div>
-                    <span className="summary-label">
-                      Всего выполнений <TrendingUp size={16} />
-                    </span>
-                    <div className="summary-value">
-                      {stats.total}
-                      <span>
-                        {" "}
-                        {plural(stats.total, ["шаг", "шага", "шагов"])}
-                      </span>
-                    </div>
-                    <p>Каждое действие приближает к цели</p>
-                  </div>
-                  <div className="mini-bars" aria-hidden="true">
-                    {[30, 45, 38, 62, 52, 75, 92].map((h, i) => (
-                      <i key={i} style={{ height: `${h}%` }} />
-                    ))}
-                  </div>
+                <div
+                  className="progress-track"
+                  role="progressbar"
+                  aria-label="Выполнено сегодня"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={
+                    stats.todayTotal
+                      ? Math.round((stats.todayDone / stats.todayTotal) * 100)
+                      : 0
+                  }
+                >
+                  <span
+                    style={{
+                      width: `${stats.todayTotal ? (stats.todayDone / stats.todayTotal) * 100 : 0}%`,
+                    }}
+                  />
                 </div>
               </section>
               <HabitList
@@ -602,40 +478,10 @@ function App() {
                 search={search}
                 today={today}
                 weekStartsOn={data.settings.weekStartsOn}
-                onToggle={toggle}
+                onSetCompletion={updateCompletion}
                 onOpen={setDetailId}
                 onAdd={() => setForm("new")}
               />
-              <section className="bottom-grid">
-                <Activity
-                  habits={data.habits}
-                  today={today}
-                  onStats={() => navigate("stats")}
-                />
-                <div className="quote-card">
-                  <span className="quote-decoration">“</span>
-                  <span className="quote-eyebrow">
-                    <Flower2 size={17} />
-                    МЫСЛЬ НА СЕГОДНЯ
-                  </span>
-                  <blockquote>
-                    Вам не нужно быть идеальными.
-                    <br />
-                    Достаточно быть постоянными.
-                  </blockquote>
-                  <p>Возвращайтесь к тому, что важно для вас.</p>
-                  <Flower2
-                    className="quote-flower"
-                    size={150}
-                    strokeWidth={0.7}
-                    aria-hidden="true"
-                  />
-                </div>
-              </section>
-              <div className="page-footnote">
-                <Leaf size={13} />
-                Не гонитесь за идеалом. Найдите свой ритм.
-              </div>
             </>
           )}
           {page === "stats" && (
@@ -650,11 +496,8 @@ function App() {
             <>
               <section className="page-heading">
                 <div>
-                  <div className="eyebrow">ПРОСТРАНСТВО ПОД ВАС</div>
-                  <h1>
-                    Настройки<span>.</span>
-                  </h1>
-                  <p>Пусть всё работает в вашем ритме.</p>
+                  <h1>Настройки</h1>
+                  <p>Оформление, расписание и данные.</p>
                 </div>
               </section>
               <div className="settings-grid">
@@ -667,7 +510,7 @@ function App() {
                   <div className="setting-row">
                     <div>
                       <h3>Тема приложения</h3>
-                      <p>Выберите комфортное оформление.</p>
+                      <p>Светлая, тёмная или системная тема.</p>
                     </div>
                   </div>
                   <div className="theme-options">
@@ -772,7 +615,7 @@ function App() {
                   />
                 </section>
                 <section className="panel settings-panel danger-panel">
-                  <h2>Новый старт</h2>
+                  <h2>Удаление данных</h2>
                   <div className="setting-row">
                     <div>
                       <h3>
@@ -780,7 +623,7 @@ function App() {
                       </h3>
                       <p>
                         {data.demo
-                          ? "Начните собственную историю с пустого списка."
+                          ? "Удалить демонстрационные привычки и отметки."
                           : "Удалить привычки и всю историю выполнений."}
                       </p>
                     </div>
@@ -799,10 +642,8 @@ function App() {
                   </span>
                   <div>
                     <strong>Ритм</strong>
-                    <p>Маленькие действия. Большие перемены.</p>
-                    <span>
-                      Версия 1.0 · Сделано для вашего спокойного роста
-                    </span>
+                    <p>Трекер привычек</p>
+                    <span>Версия 1.1</span>
                   </div>
                 </div>
               </div>
@@ -810,13 +651,34 @@ function App() {
           )}
         </main>
       </div>
+      <nav className="bottom-nav" aria-label="Разделы приложения">
+        {(
+          [
+            { key: "habits", label: "Привычки", icon: LayoutGrid },
+            { key: "stats", label: "Статистика", icon: BarChart3 },
+            { key: "settings", label: "Настройки", icon: Settings2 },
+          ] as const
+        ).map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            className={page === key ? "active" : ""}
+            aria-current={page === key ? "page" : undefined}
+            onClick={() => navigate(key)}
+          >
+            <Icon size={24} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </nav>
       {detail && !form && !confirm && (
         <HabitDetail
           habit={detail}
           today={today}
           weekStartsOn={data.settings.weekStartsOn}
           onClose={() => setDetailId(null)}
-          onToggle={(key) => toggle(detail.id, key)}
+          onSetCompletion={(key, completed) =>
+            updateCompletion(detail.id, key, completed)
+          }
           onEdit={() => setForm(detail)}
           onDelete={() =>
             setConfirm({
@@ -872,12 +734,44 @@ function App() {
   );
 }
 
+function CompletionRemovalDialog({
+  name,
+  day,
+  onClose,
+  onConfirm,
+}: {
+  name: string;
+  day: string;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Modal title="Убрать отметку?" onClose={onClose}>
+      <p className="confirm-description">
+        Отменить выполнение привычки «{name}» за {fullDate(day)}?
+      </p>
+      <div className="modal-actions">
+        <button
+          className="button button-secondary"
+          data-modal-autofocus
+          onClick={onClose}
+        >
+          Оставить отметку
+        </button>
+        <button className="button button-danger" onClick={onConfirm}>
+          Убрать отметку
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 function HabitList({
   habits,
   search,
   today,
   weekStartsOn,
-  onToggle,
+  onSetCompletion,
   onOpen,
   onAdd,
 }: {
@@ -885,202 +779,218 @@ function HabitList({
   search: string;
   today: string;
   weekStartsOn: 0 | 1;
-  onToggle: (id: string, key: string) => void;
+  onSetCompletion: (id: string, key: string, completed: boolean) => void;
   onOpen: (id: string) => void;
   onAdd: () => void;
 }) {
-  const [weekOffset, setWeekOffset] = useState(0);
-  const [view, setView] = useState<"week" | "today">("week");
+  const [month, setMonth] = useState(() => parseDate(today));
+  const [view, setView] = useState<"month" | "today">("month");
   const [category, setCategory] = useState("all");
-  const week = weekDates(addDays(today, weekOffset * 7), weekStartsOn);
-  const dates = view === "week" ? week : [today];
+  const [pendingRemoval, setPendingRemoval] = useState<{
+    id: string;
+    name: string;
+    day: string;
+  } | null>(null);
+  const dates = monthDates(month.getFullYear(), month.getMonth(), weekStartsOn);
+  const weekdays =
+    weekStartsOn === 1 ? [1, 2, 3, 4, 5, 6, 0] : [0, 1, 2, 3, 4, 5, 6];
   const filtered = habits.filter(
     (h) =>
       (category === "all" || h.category === category) &&
       h.name.toLocaleLowerCase("ru").includes(search.toLocaleLowerCase("ru")),
   );
+  function markDay(habit: Habit, day: string) {
+    if (habit.completions.includes(day))
+      setPendingRemoval({ id: habit.id, name: habit.name, day });
+    else onSetCompletion(habit.id, day, true);
+  }
   return (
-    <section className="panel habits-panel">
-      <div className="panel-heading">
-        <div className="heading-with-count">
-          <h2>Мои привычки</h2>
-          <span>{habits.length}</span>
-        </div>
-        <div className="segmented-control" aria-label="Вид списка">
-          <button
-            className={view === "week" ? "selected" : ""}
-            aria-pressed={view === "week"}
-            onClick={() => setView("week")}
+    <>
+      <section className="panel habits-panel">
+        <div className="panel-heading">
+          <select
+            className="habit-category-filter"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            aria-label="Фильтр привычек по категории"
           >
-            <CalendarDays size={15} />
-            Неделя
-          </button>
-          <button
-            className={view === "today" ? "selected" : ""}
-            aria-pressed={view === "today"}
-            onClick={() => setView("today")}
-          >
-            Сегодня
-          </button>
+            <option value="all">Все привычки</option>
+            {[...new Set(habits.map((h) => h.category))].map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
+          <div className="segmented-control" aria-label="Вид списка">
+            <button
+              className={view === "month" ? "selected" : ""}
+              aria-pressed={view === "month"}
+              onClick={() => setView("month")}
+            >
+              <CalendarDays size={18} />
+              Месяц
+            </button>
+            <button
+              className={view === "today" ? "selected" : ""}
+              aria-pressed={view === "today"}
+              onClick={() => setView("today")}
+            >
+              Сегодня
+            </button>
+          </div>
         </div>
-      </div>
-      <div className="habit-toolbar">
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          aria-label="Фильтр привычек по категории"
-        >
-          <option value="all">Все привычки</option>
-          {[...new Set(habits.map((h) => h.category))].map((c) => (
-            <option key={c}>{c}</option>
-          ))}
-        </select>
-        {view === "week" ? (
-          <div className="week-navigation">
-            <button
-              className="icon-button"
-              onClick={() => setWeekOffset((n) => n - 1)}
-              aria-label="Предыдущая неделя"
-            >
-              <ChevronLeft size={17} />
-            </button>
-            <span>
-              {shortDate(week[0])} — {shortDate(week[6])}
-              {parseDate(week[0]).getFullYear() !==
-              parseDate(today).getFullYear()
-                ? ` ${parseDate(week[0]).getFullYear()}`
-                : ""}
-            </span>
-            <button
-              className="icon-button"
-              onClick={() => setWeekOffset((n) => n + 1)}
-              aria-label="Следующая неделя"
-            >
-              <ChevronRight size={17} />
-            </button>
-            {weekOffset !== 0 && (
-              <button className="text-button" onClick={() => setWeekOffset(0)}>
-                Текущая
+        <div className="habit-toolbar">
+          {view === "month" ? (
+            <div className="month-navigation">
+              <button
+                className="icon-button"
+                onClick={() => setMonth(shiftMonth(month, -1))}
+                aria-label="Предыдущий месяц списка"
+              >
+                <ChevronLeft size={22} />
               </button>
-            )}
+              <span>{monthTitle(month)}</span>
+              <button
+                className="icon-button"
+                onClick={() => setMonth(shiftMonth(month, 1))}
+                aria-label="Следующий месяц списка"
+              >
+                <ChevronRight size={22} />
+              </button>
+              {dateKey(month).slice(0, 7) !== today.slice(0, 7) && (
+                <button
+                  className="text-button"
+                  onClick={() => setMonth(parseDate(today))}
+                >
+                  Текущий
+                </button>
+              )}
+            </div>
+          ) : (
+            <span className="muted toolbar-hint">Отметки за сегодня</span>
+          )}
+        </div>
+        {habits.length === 0 ? (
+          <EmptyState onAdd={onAdd} />
+        ) : filtered.length === 0 ? (
+          <div className="empty-state">
+            <Search size={28} />
+            <h3>Ничего не нашлось</h3>
+            <p>Попробуйте другое название или выберите все категории.</p>
+            <button
+              className="button button-secondary"
+              onClick={() => setCategory("all")}
+            >
+              Все категории
+            </button>
           </div>
         ) : (
-          <span className="muted toolbar-hint">
-            Ваши маленькие победы за сегодня
-          </span>
-        )}
-      </div>
-      {habits.length === 0 ? (
-        <EmptyState onAdd={onAdd} />
-      ) : filtered.length === 0 ? (
-        <div className="empty-state">
-          <Search size={28} />
-          <h3>Ничего не нашлось</h3>
-          <p>Попробуйте другое название или выберите все категории.</p>
-          <button
-            className="button button-secondary"
-            onClick={() => setCategory("all")}
-          >
-            Все категории
-          </button>
-        </div>
-      ) : (
-        <div className={`habit-table ${view === "today" ? "day-view" : ""}`}>
-          <div className="habit-table-header">
-            <span>ПРИВЫЧКА</span>
-            <div className="week-cells">
-              {dates.map((day) => (
-                <div key={day} className={day === today ? "current-day" : ""}>
-                  <span>{WEEK_LABELS[parseDate(day).getDay()]}</span>
-                  <strong>{parseDate(day).getDate()}</strong>
-                </div>
-              ))}
-            </div>
-            <span className="streak-heading">СЕРИЯ</span>
-          </div>
-          {filtered.map((habit) => {
-            const current = habitStats(habit, today);
-            return (
-              <div
-                className="habit-row"
-                key={habit.id}
-                style={styleColor(habit.color)}
-              >
-                <button
-                  className="habit-name-button"
-                  onClick={() => onOpen(habit.id)}
+          <div className={`habit-table ${view === "today" ? "day-view" : ""}`}>
+            {filtered.map((habit) => {
+              const current = habitStats(habit, today);
+              const doneToday = habit.completions.includes(today);
+              return (
+                <div
+                  className="habit-row"
+                  key={habit.id}
+                  style={styleColor(habit.color)}
                 >
-                  <span className="habit-icon">{habit.icon}</span>
-                  <span className="habit-name">
-                    <strong>{habit.name}</strong>
-                    <span>
-                      <i />
-                      {habit.category}
-                      <span className="name-divider">·</span>
-                      {frequency(habit)}
-                    </span>
-                  </span>
-                  <ChevronRight size={15} className="habit-name-arrow" />
-                </button>
-                <div className="week-cells">
-                  {dates.map((day) => {
-                    const done = habit.completions.includes(day);
-                    return (
-                      <div
-                        key={day}
-                        data-day={`${WEEK_LABELS[parseDate(day).getDay()]} ${parseDate(day).getDate()}`}
-                        className={day === today ? "today-column" : ""}
-                      >
-                        <button
-                          className={`completion-button ${done ? "done" : ""} ${!isScheduled(habit, day) ? "unscheduled" : ""} ${day > today ? "future" : ""}`}
-                          aria-label={`${habit.name}, ${fullDate(day)}: ${done ? "выполнено, отменить" : "отметить выполнение"}`}
-                          aria-pressed={done}
-                          title={`${fullDate(day)}${!isScheduled(habit, day) ? " · вне расписания" : ""}`}
-                          onClick={() => onToggle(habit.id, day)}
-                        >
-                          {done ? (
-                            <Check size={17} strokeWidth={2.4} />
-                          ) : !isScheduled(habit, day) ? (
-                            <span className="off-day">–</span>
-                          ) : (
-                            <span className="empty-check" />
-                          )}
-                        </button>
+                  <div className="habit-card-heading">
+                    <button
+                      className="habit-name-button"
+                      onClick={() => onOpen(habit.id)}
+                    >
+                      <span className="habit-icon">{habit.icon}</span>
+                      <span className="habit-name">
+                        <strong>{habit.name}</strong>
+                        <span>{frequency(habit)}</span>
+                      </span>
+                    </button>
+                    <button
+                      className={`today-check ${doneToday ? "done" : ""}`}
+                      aria-label={`${habit.name}: ${doneToday ? "отменить выполнение за сегодня с подтверждением" : "выполнить сегодня"}`}
+                      aria-pressed={doneToday}
+                      onClick={() => markDay(habit, today)}
+                    >
+                      {doneToday ? (
+                        <Check size={28} strokeWidth={2.5} />
+                      ) : (
+                        <Plus size={26} />
+                      )}
+                      <span>Сегодня</span>
+                    </button>
+                  </div>
+                  {view === "month" && (
+                    <>
+                      <div className="card-calendar-caption">
+                        {monthTitle(month)}
                       </div>
-                    );
-                  })}
+                      <div
+                        className="card-calendar"
+                        aria-label={`Календарь ${habit.name}`}
+                      >
+                        {weekdays.map((d) => (
+                          <span className="week-day-label" key={d}>
+                            {WEEK_LABELS[d]}
+                          </span>
+                        ))}
+                        {dates.map((day) => {
+                          const done = habit.completions.includes(day);
+                          return (
+                            <button
+                              key={day}
+                              className={`completion-button ${done ? "done" : ""} ${!isScheduled(habit, day) ? "unscheduled" : ""} ${day > today ? "future" : ""} ${day === today ? "is-today" : ""} ${parseDate(day).getMonth() !== month.getMonth() ? "outside-month" : ""}`}
+                              aria-label={`${habit.name}, ${fullDate(day)}: ${done ? "выполнено, отменить с подтверждением" : "отметить выполнение"}`}
+                              aria-pressed={done}
+                              onClick={() => markDay(habit, day)}
+                            >
+                              <span>{parseDate(day).getDate()}</span>
+                              <Check
+                                className="week-check"
+                                size={12}
+                                aria-hidden="true"
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                  <button
+                    className="row-streak"
+                    onClick={() => onOpen(habit.id)}
+                    aria-label={`Статистика ${habit.name}: серия ${daysText(current.currentStreak)}`}
+                  >
+                    <Flame size={16} />
+                    <span>Серия: {daysText(current.currentStreak)}</span>
+                    <span className="open-calendar">
+                      Подробнее <ChevronRight size={18} />
+                    </span>
+                  </button>
                 </div>
-                <button
-                  className={`row-streak ${current.currentStreak > 0 ? "has-streak" : ""}`}
-                  onClick={() => onOpen(habit.id)}
-                  aria-label={`Статистика ${habit.name}: серия ${daysText(current.currentStreak)}`}
-                >
-                  <Flame size={16} />
-                  <span>{current.currentStreak}</span>
-                  <ChevronRight size={15} />
-                </button>
-              </div>
-            );
-          })}
-          <button className="add-habit-row" onClick={onAdd}>
-            <span>
-              <Plus size={17} />
-            </span>
-            Добавить ещё одну привычку
-          </button>
+              );
+            })}
+            <button className="add-habit-row" onClick={onAdd}>
+              <Plus size={20} />
+              Добавить привычку
+            </button>
+          </div>
+        )}
+        <div className="table-footnote">
+          <span>Отметки сохраняются автоматически</span>
+          <span>Снятие отметки требует подтверждения</span>
         </div>
+      </section>
+      {pendingRemoval && (
+        <CompletionRemovalDialog
+          name={pendingRemoval.name}
+          day={pendingRemoval.day}
+          onClose={() => setPendingRemoval(null)}
+          onConfirm={() => {
+            onSetCompletion(pendingRemoval.id, pendingRemoval.day, false);
+            setPendingRemoval(null);
+          }}
+        />
       )}
-      <div className="table-footnote">
-        <span>
-          <span className="legend-dot" />
-          Один клик — один шаг вперёд
-        </span>
-        <span>
-          Нажмите на привычку, чтобы открыть календарь{" "}
-          <ArrowUpRight size={13} />
-        </span>
-      </div>
-    </section>
+    </>
   );
 }
 
@@ -1090,87 +1000,12 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       <span className="empty-illustration">
         <Leaf size={34} />
       </span>
-      <h3>Всё начинается с маленького шага</h3>
-      <p>
-        Стакан воды, несколько страниц или прогулка.
-        <br />
-        Какой будет ваша первая привычка?
-      </p>
+      <h3>Пока нет привычек</h3>
+      <p>Добавьте привычку и выберите дни выполнения.</p>
       <button className="button button-primary" onClick={onAdd}>
         <Plus size={17} />
         Создать привычку
       </button>
-    </div>
-  );
-}
-
-function Activity({
-  habits,
-  today,
-  onStats,
-}: {
-  habits: Habit[];
-  today: string;
-  onStats: () => void;
-}) {
-  const start = addDays(weekDates(today, 1)[0], -84);
-  const days = Array.from({ length: 91 }, (_, i) => addDays(start, i));
-  const active = days.filter(
-    (d) => d <= today && habits.some((h) => h.completions.includes(d)),
-  ).length;
-  return (
-    <div className="panel activity-panel">
-      <div className="panel-heading">
-        <h2>Ваш ритм</h2>
-        <button className="text-button" onClick={onStats}>
-          Статистика <ArrowUpRight size={14} />
-        </button>
-      </div>
-      <p className="activity-description">
-        <strong>
-          {active}{" "}
-          {plural(active, ["активный день", "активных дня", "активных дней"])}
-        </strong>{" "}
-        за последние 13 недель
-      </p>
-      <div className="heatmap-wrap">
-        <div className="heatmap-week-labels">
-          <span>Пн</span>
-          <span>Ср</span>
-          <span>Пт</span>
-        </div>
-        <div className="heatmap">
-          {days.map((day) => {
-            const count =
-              day <= today
-                ? habits.filter((h) => h.completions.includes(day)).length
-                : 0;
-            const intensity = count
-              ? Math.min(4, Math.ceil((count / Math.max(1, habits.length)) * 4))
-              : 0;
-            return (
-              <span
-                key={day}
-                className={`heat-cell heat-${intensity}`}
-                title={`${fullDate(day)}: ${count} выполнений`}
-                aria-label={`${fullDate(day)}: ${count} выполнений`}
-              />
-            );
-          })}
-        </div>
-      </div>
-      <div className="heatmap-footer">
-        <span>
-          {shortDate(days[0])} — {shortDate(today)}
-        </span>
-        <div>
-          Меньше
-          {[0, 1, 2, 3, 4].map((n) => (
-            <span key={n} className={`heat-cell heat-${n}`} />
-          ))}
-          Больше
-        </div>
-      </div>
     </div>
   );
 }
@@ -1180,7 +1015,7 @@ function HabitDetail({
   today,
   weekStartsOn,
   onClose,
-  onToggle,
+  onSetCompletion,
   onEdit,
   onDelete,
 }: {
@@ -1188,11 +1023,12 @@ function HabitDetail({
   today: string;
   weekStartsOn: 0 | 1;
   onClose: () => void;
-  onToggle: (key: string) => void;
+  onSetCompletion: (key: string, completed: boolean) => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const [month, setMonth] = useState(() => parseDate(today));
+  const [pendingRemoval, setPendingRemoval] = useState<string | null>(null);
   const stats = habitStats(habit, today);
   const days = monthDates(month.getFullYear(), month.getMonth(), weekStartsOn);
   const weekdays =
@@ -1205,180 +1041,204 @@ function HabitDetail({
   );
   const [jumpDate, setJumpDate] = useState(today);
   return (
-    <Modal title="Ваша привычка" onClose={onClose} wide>
-      <div className="habit-detail" style={styleColor(habit.color)}>
-        <div className="detail-title">
-          <span className="habit-icon large">{habit.icon}</span>
-          <div>
-            <h2>{habit.name}</h2>
-            <p>
-              {habit.category}
-              <span>·</span>
-              {frequency(habit)}
-            </p>
-          </div>
-          <button
-            className="icon-button"
-            aria-label="Редактировать привычку"
-            onClick={onEdit}
-          >
-            <Settings2 size={20} />
-          </button>
-        </div>
-        <div className="detail-stats">
-          <div>
-            <CheckCheck size={17} />
-            <strong>{stats.total}</strong>
-            <span>Выполнений</span>
-          </div>
-          <div>
-            <Flame size={17} />
-            <strong>
-              {stats.currentStreak}
-              <small> дн.</small>
-            </strong>
-            <span>Текущая серия</span>
-          </div>
-          <div>
-            <TrendingUp size={17} />
-            <strong>
-              {stats.longestStreak}
-              <small> дн.</small>
-            </strong>
-            <span>Лучшая серия</span>
-          </div>
-          <div>
-            <Target size={17} />
-            <strong>
-              {Math.round(stats.rate)}
-              <small>%</small>
-            </strong>
-            <span>За 30 дней</span>
-          </div>
-        </div>
-        <section className="detail-calendar">
-          <div className="calendar-heading">
-            <h3>{monthTitle(month)}</h3>
+    <>
+      <Modal title="Ваша привычка" onClose={onClose} wide>
+        <div className="habit-detail" style={styleColor(habit.color)}>
+          <div className="detail-title">
+            <span className="habit-icon large">{habit.icon}</span>
             <div>
-              <button
-                className="text-button"
-                onClick={() => {
-                  setMonth(parseDate(today));
-                  setJumpDate(today);
-                }}
-              >
-                Сегодня
-              </button>
-              <button
-                className="icon-button"
-                aria-label="Предыдущий месяц"
-                onClick={() => setMonth(shiftMonth(month, -1))}
-              >
-                <ChevronLeft size={19} />
-              </button>
-              <button
-                className="icon-button"
-                aria-label="Следующий месяц"
-                onClick={() => setMonth(shiftMonth(month, 1))}
-              >
-                <ChevronRight size={19} />
-              </button>
+              <h2>{habit.name}</h2>
+              <p>
+                {habit.category}
+                <span>·</span>
+                {frequency(habit)}
+              </p>
+            </div>
+            <button
+              className="icon-button"
+              aria-label="Редактировать привычку"
+              onClick={onEdit}
+            >
+              <Settings2 size={20} />
+            </button>
+          </div>
+          <div className="detail-stats">
+            <div>
+              <CheckCheck size={17} />
+              <strong>{stats.total}</strong>
+              <span>Выполнений</span>
+            </div>
+            <div>
+              <Flame size={17} />
+              <strong>
+                {stats.currentStreak}
+                <small> дн.</small>
+              </strong>
+              <span>Текущая серия</span>
+            </div>
+            <div>
+              <TrendingUp size={17} />
+              <strong>
+                {stats.longestStreak}
+                <small> дн.</small>
+              </strong>
+              <span>Лучшая серия</span>
+            </div>
+            <div>
+              <Target size={17} />
+              <strong>
+                {Math.round(stats.rate)}
+                <small>%</small>
+              </strong>
+              <span>За 30 дней</span>
             </div>
           </div>
-          <div className="calendar-grid">
-            {weekdays.map((d) => (
-              <span className="calendar-weekday" key={d}>
-                {WEEK_LABELS[d]}
-              </span>
-            ))}
-            {days.map((day) => {
-              const done = habit.completions.includes(day);
-              return (
+          <section className="detail-calendar">
+            <div className="calendar-heading">
+              <h3>{monthTitle(month)}</h3>
+              <div>
                 <button
-                  key={day}
-                  className={`calendar-day ${parseDate(day).getMonth() !== month.getMonth() ? "outside-month" : ""} ${done ? "completed" : ""} ${day === today ? "is-today" : ""} ${!isScheduled(habit, day) ? "not-scheduled" : ""}`}
-                  aria-label={`${fullDate(day)}: ${done ? "выполнено, отменить" : "отметить выполнение"}`}
-                  aria-pressed={done}
-                  onClick={() => onToggle(day)}
+                  className="text-button"
+                  onClick={() => {
+                    setMonth(parseDate(today));
+                    setJumpDate(today);
+                  }}
                 >
-                  <span>{parseDate(day).getDate()}</span>
-                  {done && <Check size={12} />}
-                  {!done && day === today && <i />}
+                  Сегодня
                 </button>
-              );
-            })}
-          </div>
-          <div className="calendar-legend">
-            <span>
-              <i className="completed-legend" />
-              Выполнено
-            </span>
-            <span>
-              <i className="today-legend" />
-              Сегодня
-            </span>
-            <span>
-              <i className="scheduled-legend" />
-              Вне расписания
-            </span>
-          </div>
-        </section>
-        <div className="date-jump">
-          <label htmlFor="jump-date">Перейти к дате</label>
-          <input
-            className="text-input"
-            id="jump-date"
-            type="date"
-            min="0001-01-01"
-            max="9998-12-31"
-            value={jumpDate}
-            onChange={(e) => {
-              const value = e.target.value;
-              setJumpDate(value);
-              if (
-                /^\d{4}-\d{2}-\d{2}$/.test(value) &&
-                value >= "0001-01-01" &&
-                value <= "9998-12-31"
-              ) {
-                try {
-                  setMonth(parseDate(value));
-                } catch {
-                  /* A partially typed date is not yet a valid calendar date. */
+                <button
+                  className="icon-button"
+                  aria-label="Предыдущий месяц"
+                  onClick={() => setMonth(shiftMonth(month, -1))}
+                >
+                  <ChevronLeft size={19} />
+                </button>
+                <button
+                  className="icon-button"
+                  aria-label="Следующий месяц"
+                  onClick={() => setMonth(shiftMonth(month, 1))}
+                >
+                  <ChevronRight size={19} />
+                </button>
+              </div>
+            </div>
+            <div className="calendar-grid">
+              {weekdays.map((d) => (
+                <span className="calendar-weekday" key={d}>
+                  {WEEK_LABELS[d]}
+                </span>
+              ))}
+              {days.map((day) => {
+                const done = habit.completions.includes(day);
+                return (
+                  <button
+                    key={day}
+                    className={`calendar-day ${parseDate(day).getMonth() !== month.getMonth() ? "outside-month" : ""} ${done ? "completed" : ""} ${day === today ? "is-today" : ""} ${!isScheduled(habit, day) ? "not-scheduled" : ""}`}
+                    aria-label={`${fullDate(day)}: ${done ? "выполнено, отменить с подтверждением" : "отметить выполнение"}`}
+                    aria-pressed={done}
+                    onClick={() => {
+                      if (done) setPendingRemoval(day);
+                      else onSetCompletion(day, true);
+                    }}
+                  >
+                    <span>{parseDate(day).getDate()}</span>
+                    <Check
+                      size={12}
+                      className="calendar-check"
+                      aria-hidden="true"
+                    />
+                    {!done && day === today && <i />}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="calendar-legend">
+              <span>
+                <i className="completed-legend" />
+                Выполнено
+              </span>
+              <span>
+                <i className="today-legend" />
+                Сегодня
+              </span>
+              <span>
+                <i className="scheduled-legend" />
+                Вне расписания
+              </span>
+            </div>
+          </section>
+          <div className="date-jump">
+            <label htmlFor="jump-date">Перейти к дате</label>
+            <input
+              className="text-input"
+              id="jump-date"
+              type="date"
+              min="0001-01-01"
+              max="9998-12-31"
+              value={jumpDate}
+              onChange={(e) => {
+                const value = e.target.value;
+                setJumpDate(value);
+                if (
+                  /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+                  value >= "0001-01-01" &&
+                  value <= "9998-12-31"
+                ) {
+                  try {
+                    setMonth(parseDate(value));
+                  } catch {
+                    /* A partially typed date is not yet a valid calendar date. */
+                  }
                 }
-              }
-            }}
-          />
-        </div>
-        <p className="calendar-help">
-          Нажмите на любой день, чтобы добавить или отменить отметку. Будущие
-          отметки учитываются в статистике с наступлением этой даты.
-        </p>
-        <div className="month-summary">
-          <div>
-            <span>Выполнено по расписанию за месяц</span>
-            <strong>
-              {monthStats.completed} <span>из {monthStats.scheduled}</span>
-            </strong>
-          </div>
-          <div className="progress-track">
-            <span
-              style={{ width: `${monthStats.rate}%`, background: habit.color }}
+              }}
             />
           </div>
-          <span>{Math.round(monthStats.rate)}% — ваш прогресс на сегодня</span>
+          <p className="calendar-help">
+            Нажмите на день, чтобы отметить выполнение. Для снятия отметки
+            потребуется подтверждение. Будущие отметки учитываются с
+            наступлением этой даты.
+          </p>
+          <div className="month-summary">
+            <div>
+              <span>Выполнено по расписанию за месяц</span>
+              <strong>
+                {monthStats.completed} <span>из {monthStats.scheduled}</span>
+              </strong>
+            </div>
+            <div className="progress-track">
+              <span
+                style={{
+                  width: `${monthStats.rate}%`,
+                  background: habit.color,
+                }}
+              />
+            </div>
+            <span>{Math.round(monthStats.rate)}% выполнено</span>
+          </div>
+          <div className="detail-footer">
+            <button className="text-button danger-text" onClick={onDelete}>
+              <Trash2 size={15} />
+              Удалить привычку
+            </button>
+            <button className="button button-secondary" onClick={onEdit}>
+              <Settings2 size={15} />
+              Редактировать
+            </button>
+          </div>
         </div>
-        <div className="detail-footer">
-          <button className="text-button danger-text" onClick={onDelete}>
-            <Trash2 size={15} />
-            Удалить привычку
-          </button>
-          <button className="button button-secondary" onClick={onEdit}>
-            <Settings2 size={15} />
-            Редактировать
-          </button>
-        </div>
-      </div>
-    </Modal>
+      </Modal>
+      {pendingRemoval && (
+        <CompletionRemovalDialog
+          name={habit.name}
+          day={pendingRemoval}
+          onClose={() => setPendingRemoval(null)}
+          onConfirm={() => {
+            onSetCompletion(pendingRemoval, false);
+            setPendingRemoval(null);
+          }}
+        />
+      )}
+    </>
   );
 }
 
@@ -1431,11 +1291,8 @@ function Statistics({
     <>
       <section className="page-heading">
         <div>
-          <div className="eyebrow">ВАШИ УСИЛИЯ ИМЕЮТ ЗНАЧЕНИЕ</div>
-          <h1>
-            Прогресс в деталях<span>.</span>
-          </h1>
-          <p>Посмотрите, как маленькие действия меняют вашу жизнь.</p>
+          <h1>Статистика</h1>
+          <p>Выполнения и регулярность за выбранный месяц.</p>
         </div>
         <div className="month-picker">
           <button
@@ -1495,14 +1352,14 @@ function Statistics({
                   {activeDays}
                   <span> {plural(activeDays, ["день", "дня", "дней"])}</span>
                 </div>
-                <p>Хотя бы один шаг навстречу себе</p>
+                <p>Дни с хотя бы одним выполнением</p>
               </div>
             </div>
           </div>
           <section className="panel chart-panel">
             <div className="panel-heading">
               <div>
-                <h2>День за днём</h2>
+                <h2>Выполнения по дням</h2>
                 <p>Количество выполненных привычек</p>
               </div>
               <span className="chart-legend">
@@ -1557,7 +1414,7 @@ function Statistics({
           <div className="stats-bottom-grid">
             <section className="panel ranking-panel">
               <div className="panel-heading">
-                <h2>Привычки в фокусе</h2>
+                <h2>По привычкам</h2>
                 <span className="muted">Последние 30 дней</span>
               </div>
               {[...habits]
@@ -1596,7 +1453,7 @@ function Statistics({
             </section>
             <section className="panel weekday-panel">
               <div className="panel-heading">
-                <h2>Ваши сильные дни</h2>
+                <h2>По дням недели</h2>
               </div>
               <p>Регулярность по дням недели за месяц</p>
               {weekdayRates.map(({ weekday, rate }) => (
@@ -1614,8 +1471,7 @@ function Statistics({
             <Flame size={20} />
             <span>
               Ваша лучшая серия за всё время —{" "}
-              <strong>{daysText(overall.bestStreak)}</strong>. Каждый новый день
-              — возможность продолжить.
+              <strong>{daysText(overall.bestStreak)}</strong>.
             </span>
           </div>
         </>
